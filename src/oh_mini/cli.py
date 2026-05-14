@@ -15,13 +15,14 @@ from oh_mini import __version__
 from oh_mini.auth.cli import handle_auth
 from oh_mini.auth.resolver import CredentialResolver, NoCredentialError, pick_default_provider
 from oh_mini.auth.storage import default_backend
+from oh_mini.bridge import handle_bridge
 from oh_mini.config import Settings, load_settings
 from oh_mini.config_cli import handle_config
 from oh_mini.output import render_stream_event
 from oh_mini.runtime import build_runtime
 
 # Top-level subcommands that take over argument parsing entirely.
-_SUBCOMMANDS = frozenset({"auth", "providers", "config"})
+_SUBCOMMANDS = frozenset({"auth", "providers", "config", "bridge"})
 
 
 def _build_subcommand_parser() -> argparse.ArgumentParser:
@@ -68,6 +69,20 @@ def _build_subcommand_parser() -> argparse.ArgumentParser:
     config_unset.add_argument("key")
 
     config_sub.add_parser("show", help="show all settings + effective provider")
+
+    # oh bridge ...
+    bridge_p = sub.add_parser("bridge", help="run oh-mini as a JSON-RPC bridge server")
+    bridge_p.add_argument("--provider", default=None, dest="provider_flag")
+    bridge_p.add_argument("--profile", default=None, dest="profile_flag")
+    bridge_p.add_argument("--model", default=None)
+    bridge_p.add_argument("--api-key", default=None, dest="api_key")
+    bridge_p.add_argument(
+        "--framing",
+        default="newline",
+        choices=["newline", "content-length"],
+    )
+    bridge_p.add_argument("--sessions-root", default=None)
+    bridge_p.add_argument("--yolo", action="store_true", default=False)
 
     return parser
 
@@ -194,6 +209,8 @@ def main(argv: list[str] | None = None) -> None:
             rc = _handle_providers(args)
         elif args.cmd == "config":
             rc = handle_config(args)
+        elif args.cmd == "bridge":
+            rc = handle_bridge(args)
         else:
             parser.print_help()
             rc = 2
