@@ -28,7 +28,7 @@ def test_load_settings_missing_file_returns_defaults(tmp_path):
     from oh_mini.config import load_settings
 
     s = load_settings(tmp_path / "settings.json")
-    assert s.default_provider == "anthropic"
+    assert s.default_provider is None
     assert s.default_profile == "default"
 
 
@@ -81,7 +81,7 @@ def test_load_settings_corrupt_json_returns_defaults(tmp_path, capsys):
     p = tmp_path / "settings.json"
     p.write_text("{ not valid json")
     s = load_settings(p)
-    assert s.default_provider == "anthropic"
+    assert s.default_provider is None
     captured = capsys.readouterr()
     assert "settings" in captured.err.lower() or "corrupt" in captured.err.lower()
 
@@ -136,3 +136,95 @@ def test_load_settings_custom_provider_overwrites_builtin(tmp_path, _restore_cat
     from meta_harney import BUILT_IN_PROVIDERS
 
     assert BUILT_IN_PROVIDERS["openai"].base_url == "https://my-private-openai/v1"
+
+
+# ---------------------------------------------------------------------------
+# Phase 9c Task 4: Settings.default_provider optional + save/update/unset.
+# ---------------------------------------------------------------------------
+
+
+def test_settings_default_provider_defaults_to_none() -> None:
+    from oh_mini.config import Settings
+
+    s = Settings()
+    assert s.default_provider is None
+    assert s.default_profile == "default"
+
+
+def test_load_settings_returns_explicit_default_provider(tmp_path):
+    from oh_mini.config import load_settings
+
+    p = tmp_path / "settings.json"
+    p.write_text(json.dumps({"default_provider": "deepseek"}), encoding="utf-8")
+    s = load_settings(p)
+    assert s.default_provider == "deepseek"
+
+
+def test_load_settings_missing_default_provider_is_none(tmp_path):
+    from oh_mini.config import load_settings
+
+    p = tmp_path / "settings.json"
+    p.write_text(json.dumps({"default_profile": "work"}), encoding="utf-8")
+    s = load_settings(p)
+    assert s.default_provider is None
+    assert s.default_profile == "work"
+
+
+def test_save_settings_roundtrip(tmp_path):
+    from oh_mini.config import Settings, load_settings, save_settings
+
+    p = tmp_path / "settings.json"
+    save_settings(Settings(default_provider="moonshot", default_profile="work"), p)
+    s = load_settings(p)
+    assert s.default_provider == "moonshot"
+    assert s.default_profile == "work"
+
+
+def test_save_settings_omits_none_default_provider(tmp_path):
+    from oh_mini.config import Settings, save_settings
+
+    p = tmp_path / "settings.json"
+    save_settings(Settings(default_provider=None), p)
+    raw = json.loads(p.read_text(encoding="utf-8"))
+    assert "default_provider" not in raw
+
+
+def test_update_setting_creates_file_if_missing(tmp_path):
+    from oh_mini.config import load_settings, update_setting
+
+    p = tmp_path / "settings.json"
+    update_setting("default_provider", "deepseek", p)
+    assert load_settings(p).default_provider == "deepseek"
+
+
+def test_update_setting_preserves_other_keys(tmp_path):
+    from oh_mini.config import update_setting
+
+    p = tmp_path / "settings.json"
+    p.write_text(
+        json.dumps({"default_provider": "anthropic", "custom_providers": [{"name": "x"}]}),
+        encoding="utf-8",
+    )
+    update_setting("default_profile", "work", p)
+    raw = json.loads(p.read_text(encoding="utf-8"))
+    assert raw["default_provider"] == "anthropic"
+    assert raw["custom_providers"] == [{"name": "x"}]
+    assert raw["default_profile"] == "work"
+
+
+def test_unset_setting_removes_key(tmp_path):
+    from oh_mini.config import unset_setting
+
+    p = tmp_path / "settings.json"
+    p.write_text(json.dumps({"default_provider": "deepseek"}), encoding="utf-8")
+    unset_setting("default_provider", p)
+    raw = json.loads(p.read_text(encoding="utf-8"))
+    assert "default_provider" not in raw
+
+
+def test_unset_setting_no_op_when_missing(tmp_path):
+    from oh_mini.config import load_settings, unset_setting
+
+    p = tmp_path / "settings.json"
+    unset_setting("default_provider", p)  # should not raise
+    assert not p.exists() or load_settings(p).default_provider is None
