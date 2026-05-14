@@ -21,7 +21,7 @@ class CredentialResolver:
 
     1. cli_api_key (if non-empty)
     2. env var <PROVIDER>_API_KEY (if non-empty)
-    3. backend.get(CredentialKey(provider, profile))
+    3. backend.get(CredentialKey(provider, profile))  -> on hit, backend.touch()
     4. raise NoCredentialError
     """
 
@@ -40,7 +40,29 @@ class CredentialResolver:
         env_value = os.environ.get(f"{provider.upper()}_API_KEY", "")
         if env_value:
             return env_value
-        stored = self._backend.get(CredentialKey(provider, profile))
+        key = CredentialKey(provider, profile)
+        stored = self._backend.get(key)
         if stored:
+            self._backend.touch(key)
             return stored
         raise NoCredentialError(provider, profile)
+
+
+def pick_default_provider(backend: CredentialBackend) -> str | None:
+    """Smart fallback when settings.default_provider is unset.
+
+    - 0 credentials: None
+    - 1 credential: that provider
+    - N credentials: provider with largest last_used (ties broken by name)
+    """
+    keys = backend.list()
+    if not keys:
+        return None
+    if len(keys) == 1:
+        return keys[0].provider
+    keys_sorted = sorted(
+        keys,
+        key=lambda k: (backend.get_last_used(k), k.provider),
+        reverse=True,
+    )
+    return keys_sorted[0].provider
