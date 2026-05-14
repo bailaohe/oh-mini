@@ -59,6 +59,11 @@ disallow_untyped_calls = false
 module = "meta_harney.*"
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "nbformat.*"
+ignore_missing_imports = true
+disallow_untyped_calls = false
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
