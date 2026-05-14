@@ -1,12 +1,11 @@
 # oh-mini
 
-> A faithful, minimal recreation of OpenHarness's coding-assistant experience,
-> built on the [meta-harney](https://github.com/bailaohe/meta-harney) runtime SDK.
+> A coding-agent CLI built on the [meta-harney](https://github.com/bailaohe/meta-harney) runtime SDK.
 
-oh-mini ships 10 coding tools, supports one-shot and interactive REPL modes,
-persists sessions across runs, and can use either Anthropic or OpenAI as the
-LLM backend. It's deliberately scoped as a demo of what meta-harney's
-domain-agnostic runtime can do on a real coding workload.
+Supports 9 LLM providers out of the box (Anthropic, OpenAI, DeepSeek, Moonshot,
+Gemini, MiniMax, NVIDIA, Dashscope, ModelScope), persists sessions across runs,
+and stores credentials via system keyring (with file fallback). User-defined
+providers via `~/.oh-mini/settings.json`.
 
 ## Install
 
@@ -16,9 +15,91 @@ cd oh-mini
 python3.10 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-
-export ANTHROPIC_API_KEY=sk-ant-...     # or OPENAI_API_KEY
 ```
+
+## Quickstart
+
+```bash
+# Store a credential (uses system keyring if available, else file 0600)
+oh auth login --provider anthropic
+# (interactive; enter API key, hidden input)
+
+# Then run
+oh "list the python files in the current directory"
+```
+
+Or skip storage and use env var:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-... oh "..."
+```
+
+## Supported providers
+
+```bash
+oh providers list
+```
+
+```
+name           kind       default_model                base_url                                                description
+anthropic      anthropic  claude-sonnet-4-5            (SDK default)                                           Anthropic Claude (official)
+openai         openai     gpt-4o                       (SDK default)                                           OpenAI (official)
+moonshot       openai     kimi-k2-0905-preview         https://api.moonshot.cn/v1                              Moonshot AI (Kimi, OpenAI-compatible)
+deepseek       openai     deepseek-chat                https://api.deepseek.com/v1                             DeepSeek (OpenAI-compatible)
+gemini         openai     gemini-2.0-flash             https://generativelanguage.googleapis.com/v1beta/openai Google Gemini (OpenAI-compatible)
+minimax        openai     MiniMax-M2                   https://api.minimax.io/v1                               MiniMax (OpenAI-compatible)
+nvidia         openai     meta/llama-3.1-405b-instruct https://integrate.api.nvidia.com/v1                     NVIDIA NIM (OpenAI-compatible)
+dashscope      openai     qwen-max                     https://dashscope.aliyuncs.com/compatible-mode/v1       Alibaba Dashscope (OpenAI-compatible)
+modelscope     openai     Qwen/Qwen2.5-72B-Instruct    https://api-inference.modelscope.cn/v1                  ModelScope (OpenAI-compatible)
+```
+
+Switch with `--provider`:
+
+```bash
+oh --provider deepseek "task description"
+oh --provider moonshot --model kimi-k2-0905-preview "..."
+```
+
+## Credential management
+
+```bash
+oh auth login --provider deepseek
+oh auth login --provider deepseek --profile work    # separate key per profile
+oh auth list                                        # show all stored
+oh auth show --provider deepseek                    # show profiles for one
+oh auth remove --provider deepseek --profile work   # delete
+```
+
+**Resolution priority (highest first):**
+1. `--api-key sk-...` flag
+2. env var `<PROVIDER>_API_KEY` (e.g. `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`)
+3. stored credential (keyring or file)
+
+**Storage backend:** keyring (macOS Keychain / Linux Secret Service /
+Windows Credential Manager) if available; otherwise plain JSON at
+`~/.oh-mini/credentials.json` with POSIX mode 0600.
+
+## Custom providers
+
+Add your own OpenAI-compatible endpoint via `~/.oh-mini/settings.json`:
+
+```json
+{
+  "default_provider": "deepseek",
+  "default_profile": "default",
+  "custom_providers": [
+    {
+      "name": "my-local-llama",
+      "kind": "openai",
+      "base_url": "http://localhost:8080/v1",
+      "default_model": "llama-3.1-8b"
+    }
+  ]
+}
+```
+
+Then `oh --provider my-local-llama "..."` works the same as a built-in.
+Custom providers can override built-ins by reusing the name.
 
 ## Usage
 
@@ -35,10 +116,7 @@ oh> /exit
 # Continue a previous session
 oh --resume <session-id> "tweak it"
 
-# Use OpenAI instead
-oh --provider openai --model gpt-4o "..."
-
-# Skip all permission prompts (dangerous; not recommended outside containers)
+# Skip all permission prompts (dangerous outside containers)
 oh --yolo "..."
 ```
 
@@ -51,7 +129,7 @@ oh --yolo "..."
 | `file_edit` | `{path, old_string, new_string, replace_all?}` | Exact match |
 | `grep` | `{pattern, path?, glob?, max_matches?}` | Recursive regex |
 | `glob` | `{pattern, path?}` | Supports `**` |
-| `bash` | `{command, timeout?, cwd?}` | Default 60s timeout |
+| `bash` | `{command, timeout?, cwd?}` | 60s timeout default |
 | `todo_write` | `{todos: [{content, status}]}` | Stored in session |
 | `agent` | `{description, prompt}` | Read-only sub-agent |
 | `notebook_edit` | `{path, cell_index, new_source}` | .ipynb only |
@@ -59,14 +137,15 @@ oh --yolo "..."
 
 ## Permission model
 
-- Interactive REPL: prompts y/N/a for dangerous tools (`bash`, `file_write`, `file_edit`, `notebook_edit`)
+- Interactive REPL: prompts y/N/a for dangerous tools (`bash`, `file_write`,
+  `file_edit`, `notebook_edit`)
 - One-shot mode: allows everything by default (assumes you trust the prompt)
 - `--yolo` / `--no-yolo` overrides per invocation
 
 ## Session storage
 
-Sessions persist as JSON files under `~/.oh-mini/sessions/`. Override the
-location with `--sessions-root <path>`.
+Sessions persist as JSON files under `~/.oh-mini/sessions/`. Override with
+`--sessions-root <path>`.
 
 ## License
 
