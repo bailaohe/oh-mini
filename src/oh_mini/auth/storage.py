@@ -6,6 +6,7 @@ JSON at ~/.oh-mini/credentials.json with POSIX mode 0600.
 
 default_backend() probes keyring availability and falls back to file.
 """
+
 from __future__ import annotations
 
 import json
@@ -65,9 +66,7 @@ class FileBackend:
                 f"credentials file corrupted: {self._path}: {exc}"
             ) from exc
         if not isinstance(data, dict) or data.get("version") != 1:
-            raise CredentialStorageError(
-                f"credentials file has unexpected schema: {self._path}"
-            )
+            raise CredentialStorageError(f"credentials file has unexpected schema: {self._path}")
         creds = data.get("credentials", {})
         if not isinstance(creds, dict):
             raise CredentialStorageError(
@@ -78,9 +77,7 @@ class FileBackend:
     def _save(self, creds: dict[str, dict[str, str]]) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self._path.with_suffix(".json.tmp")
-        body = json.dumps(
-            {"version": 1, "credentials": creds}, indent=2, ensure_ascii=False
-        )
+        body = json.dumps({"version": 1, "credentials": creds}, indent=2, ensure_ascii=False)
         fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(body + "\n")
@@ -130,9 +127,7 @@ class KeyringBackend:
     """Uses `keyring` library. Maintains a sidecar JSON index of stored keys."""
 
     def __init__(self, *, index_path: Path | None = None) -> None:
-        self._index_path = index_path or (
-            Path.home() / ".oh-mini" / "keyring-index.json"
-        )
+        self._index_path = index_path or (Path.home() / ".oh-mini" / "keyring-index.json")
 
     def _load_index(self) -> list[CredentialKey]:
         if not self._index_path.exists():
@@ -146,9 +141,7 @@ class KeyringBackend:
         out: list[CredentialKey] = []
         for entry in data:
             if isinstance(entry, dict) and "provider" in entry:
-                out.append(
-                    CredentialKey(entry["provider"], entry.get("profile", "default"))
-                )
+                out.append(CredentialKey(entry["provider"], entry.get("profile", "default")))
         return out
 
     def _save_index(self, keys: list[CredentialKey]) -> None:

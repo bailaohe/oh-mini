@@ -3,6 +3,7 @@
 Uses OH_MINI_FORCE_FILE_BACKEND=1 to force FileBackend (no keyring side-effects).
 Each test runs in an isolated HOME (tmp_path).
 """
+
 from __future__ import annotations
 
 import json

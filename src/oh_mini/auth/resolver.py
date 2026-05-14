@@ -1,4 +1,5 @@
 """CredentialResolver — resolve an API key by priority."""
+
 from __future__ import annotations
 
 import os

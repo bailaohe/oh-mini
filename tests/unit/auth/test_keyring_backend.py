@@ -1,4 +1,5 @@
 """Tests for KeyringBackend (system keyring storage)."""
+
 from __future__ import annotations
 
 from unittest.mock import patch
@@ -10,9 +11,7 @@ def test_keyring_backend_put_calls_set_password(tmp_path):
     with patch("oh_mini.auth.storage.keyring") as kr:
         b = KeyringBackend(index_path=tmp_path / "index.json")
         b.put(CredentialKey("deepseek", "default"), "sk-xxx")
-        kr.set_password.assert_called_once_with(
-            "oh-mini", "deepseek:default", "sk-xxx"
-        )
+        kr.set_password.assert_called_once_with("oh-mini", "deepseek:default", "sk-xxx")
 
 
 def test_keyring_backend_get_returns_keyring_value(tmp_path):

@@ -1,4 +1,5 @@
 """Tests for build_runtime factory (v0.2.0: consumes meta-harney catalog)."""
+
 from __future__ import annotations
 
 import pytest
@@ -32,8 +33,16 @@ def test_build_runtime_loads_all_ten_tools(monkeypatch, tmp_path):
     rt = build_runtime(provider="anthropic", api_key="fake", model=None, yolo=False)
     tools = rt._tools
     expected = {
-        "file_read", "file_write", "file_edit", "grep", "glob", "bash",
-        "todo_write", "agent", "notebook_edit", "web_fetch",
+        "file_read",
+        "file_write",
+        "file_edit",
+        "grep",
+        "glob",
+        "bash",
+        "todo_write",
+        "agent",
+        "notebook_edit",
+        "web_fetch",
     }
     assert set(tools.keys()) == expected
 
@@ -53,6 +62,7 @@ def test_build_runtime_catalog_provider_uses_spec_base_url(monkeypatch, tmp_path
     rt = build_runtime(provider="moonshot", api_key="sk-moon", model=None, yolo=False)
     assert rt._config.model == "kimi-k2-0905-preview"
     from meta_harney import OpenAIProvider
+
     assert isinstance(rt._provider, OpenAIProvider)
     assert rt._provider._base_url == "https://api.moonshot.cn/v1"
 

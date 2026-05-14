@@ -1,4 +1,5 @@
 """Factory to assemble an oh-mini AgentRuntime (Phase 9b: catalog-driven)."""
+
 from __future__ import annotations
 
 import os
@@ -45,17 +46,13 @@ def build_runtime(
         from meta_harney.testing import FakeLLMProvider, FakeRound
 
         prov = FakeLLMProvider(
-            rounds=[
-                FakeRound(text="hello from fake", stop_reason="end_turn")
-                for _ in range(20)
-            ]
+            rounds=[FakeRound(text="hello from fake", stop_reason="end_turn") for _ in range(20)]
         )
         chosen_model = model or "fake-model"
     else:
         if provider not in BUILT_IN_PROVIDERS:
             print(
-                f"error: unknown provider {provider!r}. "
-                f"Try: oh providers list",
+                f"error: unknown provider {provider!r}. Try: oh providers list",
                 file=sys.stderr,
             )
             sys.exit(2)

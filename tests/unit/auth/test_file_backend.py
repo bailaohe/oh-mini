@@ -1,4 +1,5 @@
 """Tests for FileBackend (file-backed credential storage)."""
+
 from __future__ import annotations
 
 import stat

@@ -1,4 +1,5 @@
 """Tests for CredentialResolver."""
+
 from __future__ import annotations
 
 import pytest
@@ -58,10 +59,12 @@ def test_resolver_no_credential_raises(monkeypatch):
 
 
 def test_resolver_profile_separates_credentials(monkeypatch):
-    backend = _InMemoryBackend({
-        CredentialKey("deepseek", "default"): "sk-default",
-        CredentialKey("deepseek", "work"): "sk-work",
-    })
+    backend = _InMemoryBackend(
+        {
+            CredentialKey("deepseek", "default"): "sk-default",
+            CredentialKey("deepseek", "work"): "sk-work",
+        }
+    )
     monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
     r = CredentialResolver(backend)
     assert r.resolve("deepseek", "default") == "sk-default"

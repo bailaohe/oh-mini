@@ -1,4 +1,5 @@
 """oh-mini CLI entry point (Phase 9b: subparser + resolver wiring)."""
+
 from __future__ import annotations
 
 import argparse
@@ -152,9 +153,7 @@ def main(argv: list[str] | None = None) -> None:
     effective_argv = sys.argv[1:] if argv is None else argv
 
     # Detect whether first non-flag token is a known subcommand.
-    first_positional = next(
-        (a for a in effective_argv if not a.startswith("-")), None
-    )
+    first_positional = next((a for a in effective_argv if not a.startswith("-")), None)
     is_subcommand = first_positional in _SUBCOMMANDS
 
     settings = load_settings()

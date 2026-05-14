@@ -1,4 +1,5 @@
 """oh-mini configuration (~/.oh-mini/settings.json)."""
+
 from __future__ import annotations
 
 import json

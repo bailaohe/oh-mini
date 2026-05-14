@@ -1,4 +1,5 @@
 """CLI subcommand handlers for `oh auth ...`."""
+
 from __future__ import annotations
 
 import argparse
@@ -49,9 +50,7 @@ def _do_login(args: argparse.Namespace, backend: CredentialBackend, backend_name
         return 2
     profile = args.profile or "default"
     try:
-        api_key = getpass.getpass(
-            f"API key for {args.provider} ({profile}): "
-        ).strip()
+        api_key = getpass.getpass(f"API key for {args.provider} ({profile}): ").strip()
     except (EOFError, KeyboardInterrupt):
         print("\naborted", file=sys.stderr)
         return 1

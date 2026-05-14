@@ -1,4 +1,5 @@
 """Interactive REPL loop."""
+
 from __future__ import annotations
 
 import argparse
@@ -23,6 +24,7 @@ async def run_repl(args: argparse.Namespace, settings: object = None) -> int:
 
     if settings is None:
         from oh_mini.config import load_settings
+
         settings = load_settings()
 
     from oh_mini.config import Settings
@@ -40,9 +42,7 @@ async def run_repl(args: argparse.Namespace, settings: object = None) -> int:
     try:
         api_key = resolver.resolve(provider_name, profile_name, cli_api_key=args.api_key)
     except NoCredentialError as exc:
-        sys.stderr.write(
-            f"error: {exc}. Try: oh auth login --provider {provider_name}\n"
-        )
+        sys.stderr.write(f"error: {exc}. Try: oh auth login --provider {provider_name}\n")
         return 1
 
     sessions_root = Path(args.sessions_root) if args.sessions_root else None
