@@ -126,6 +126,28 @@ Add your own OpenAI-compatible endpoint via `~/.oh-mini/settings.json`:
 Then `oh --provider my-local-llama "..."` works the same as a built-in.
 Custom providers can override built-ins by reusing the name.
 
+## Bridge mode
+
+Run oh-mini as a JSON-RPC server for any non-Python client (TUI, IDE plugin):
+
+```bash
+oh bridge --provider deepseek
+```
+
+The process reads JSON-RPC 2.0 requests from stdin and writes responses /
+notifications to stdout. All standard methods from
+[`meta_harney.bridge`](https://github.com/bailaohe/meta-harney) are supported:
+`initialize`, `shutdown`, `session.{create,list,load,send_message,cancel}`,
+`$/cancelRequest`, `tools.list`, `permission/request` (server-initiated),
+`telemetry/subscribe`.
+
+**Permission flow:** by default, dangerous tools (`bash`, `file_write`, etc.)
+send `permission/request` to the parent process and wait for the decision.
+Pass `--yolo` to bypass — runs all tools immediately (CI / standalone testing).
+
+**Framing:** newline-delimited JSON by default. Use `--framing content-length`
+for LSP-style framing if payloads get large.
+
 ## Usage
 
 ```bash

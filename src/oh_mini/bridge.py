@@ -97,9 +97,7 @@ def handle_bridge(args: argparse.Namespace) -> int:
         return 1
 
     framing = _select_framing(getattr(args, "framing", "newline"))
-    sessions_root = (
-        Path(args.sessions_root) if getattr(args, "sessions_root", None) else None
-    )
+    sessions_root = Path(args.sessions_root) if getattr(args, "sessions_root", None) else None
 
     asyncio.run(
         _run_server(

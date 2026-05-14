@@ -7,8 +7,8 @@ import argparse
 import pytest
 
 
-def _args(**kwargs) -> argparse.Namespace:
-    defaults = {
+def _args(**kwargs: object) -> argparse.Namespace:
+    defaults: dict[str, object] = {
         "provider_flag": None,
         "profile_flag": None,
         "model": None,
