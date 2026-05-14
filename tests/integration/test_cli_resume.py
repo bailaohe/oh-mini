@@ -20,7 +20,7 @@ def test_resume_continues_existing_session(tmp_path):
 
     # First run: capture session id
     proc1 = subprocess.run(
-        [sys.executable, "-m", "oh_mini", "first message"],
+        [sys.executable, "-m", "oh_mini", "--provider", "anthropic", "first message"],
         capture_output=True,
         text=True,
         env=env,
@@ -34,7 +34,16 @@ def test_resume_continues_existing_session(tmp_path):
 
     # Second run: --resume
     proc2 = subprocess.run(
-        [sys.executable, "-m", "oh_mini", "--resume", sid, "follow-up"],
+        [
+            sys.executable,
+            "-m",
+            "oh_mini",
+            "--provider",
+            "anthropic",
+            "--resume",
+            sid,
+            "follow-up",
+        ],
         capture_output=True,
         text=True,
         env=env,
@@ -55,7 +64,16 @@ def test_resume_unknown_session_exits_2(tmp_path):
         }
     )
     proc = subprocess.run(
-        [sys.executable, "-m", "oh_mini", "--resume", "nonexistent-id", "x"],
+        [
+            sys.executable,
+            "-m",
+            "oh_mini",
+            "--provider",
+            "anthropic",
+            "--resume",
+            "nonexistent-id",
+            "x",
+        ],
         capture_output=True,
         text=True,
         env=env,

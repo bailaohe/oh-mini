@@ -13,14 +13,15 @@ from rich.console import Console
 
 from oh_mini import __version__
 from oh_mini.auth.cli import handle_auth
-from oh_mini.auth.resolver import CredentialResolver, NoCredentialError
+from oh_mini.auth.resolver import CredentialResolver, NoCredentialError, pick_default_provider
 from oh_mini.auth.storage import default_backend
 from oh_mini.config import Settings, load_settings
+from oh_mini.config_cli import handle_config
 from oh_mini.output import render_stream_event
 from oh_mini.runtime import build_runtime
 
 # Top-level subcommands that take over argument parsing entirely.
-_SUBCOMMANDS = frozenset({"auth", "providers"})
+_SUBCOMMANDS = frozenset({"auth", "providers", "config"})
 
 
 def _build_subcommand_parser() -> argparse.ArgumentParser:
@@ -52,6 +53,22 @@ def _build_subcommand_parser() -> argparse.ArgumentParser:
     prov_sub = prov_p.add_subparsers(dest="prov_cmd", required=True)
     prov_sub.add_parser("list", help="list known providers")
 
+    # oh config ...
+    config_p = sub.add_parser("config", help="manage settings")
+    config_sub = config_p.add_subparsers(dest="config_cmd", required=True)
+
+    config_set = config_sub.add_parser("set", help="set a setting")
+    config_set.add_argument("key")
+    config_set.add_argument("value")
+
+    config_get = config_sub.add_parser("get", help="get a setting")
+    config_get.add_argument("key")
+
+    config_unset = config_sub.add_parser("unset", help="unset a setting")
+    config_unset.add_argument("key")
+
+    config_sub.add_parser("show", help="show all settings + effective provider")
+
     return parser
 
 
@@ -81,7 +98,17 @@ def _resolve_yolo(args: argparse.Namespace, *, interactive_mode: bool) -> bool:
 
 
 async def run_one_shot(args: argparse.Namespace, settings: Settings) -> int:
+    backend = default_backend()
     provider_name = args.default_provider_flag or settings.default_provider
+    if provider_name is None:
+        provider_name = pick_default_provider(backend)
+    if provider_name is None:
+        print(
+            "error: no providers configured. Run: oh auth login --provider <name>",
+            file=sys.stderr,
+        )
+        return 1
+
     profile_name = args.default_profile_flag or settings.default_profile
 
     if provider_name not in BUILT_IN_PROVIDERS:
@@ -91,7 +118,7 @@ async def run_one_shot(args: argparse.Namespace, settings: Settings) -> int:
         )
         return 2
 
-    resolver = CredentialResolver(default_backend())
+    resolver = CredentialResolver(backend)
     try:
         api_key = resolver.resolve(provider_name, profile_name, cli_api_key=args.api_key)
     except NoCredentialError as exc:
@@ -165,6 +192,8 @@ def main(argv: list[str] | None = None) -> None:
             rc = handle_auth(args)
         elif args.cmd == "providers":
             rc = _handle_providers(args)
+        elif args.cmd == "config":
+            rc = handle_config(args)
         else:
             parser.print_help()
             rc = 2

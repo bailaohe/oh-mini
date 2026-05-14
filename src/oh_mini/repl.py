@@ -11,7 +11,7 @@ from meta_harney import BUILT_IN_PROVIDERS
 from meta_harney.abstractions._types import Message, TextBlock
 from rich.console import Console
 
-from oh_mini.auth.resolver import CredentialResolver, NoCredentialError
+from oh_mini.auth.resolver import CredentialResolver, NoCredentialError, pick_default_provider
 from oh_mini.auth.storage import default_backend
 from oh_mini.output import render_stream_event
 from oh_mini.runtime import build_runtime
@@ -31,14 +31,21 @@ async def run_repl(args: argparse.Namespace, settings: object = None) -> int:
 
     assert isinstance(settings, Settings)
 
+    backend = default_backend()
     provider_name = args.default_provider_flag or settings.default_provider
+    if provider_name is None:
+        provider_name = pick_default_provider(backend)
+    if provider_name is None:
+        sys.stderr.write("error: no providers configured. Run: oh auth login --provider <name>\n")
+        return 1
+
     profile_name = args.default_profile_flag or settings.default_profile
 
     if provider_name not in BUILT_IN_PROVIDERS:
         sys.stderr.write(f"error: unknown provider {provider_name!r}. Try: oh providers list\n")
         return 2
 
-    resolver = CredentialResolver(default_backend())
+    resolver = CredentialResolver(backend)
     try:
         api_key = resolver.resolve(provider_name, profile_name, cli_api_key=args.api_key)
     except NoCredentialError as exc:

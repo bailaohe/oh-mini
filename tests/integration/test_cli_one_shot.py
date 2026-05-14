@@ -29,7 +29,7 @@ def _run_cli(
 
 def test_cli_one_shot_basic(tmp_path):
     proc = _run_cli(
-        ["hi there"],
+        ["--provider", "anthropic", "hi there"],
         env_extra={"HOME": str(tmp_path), "ANTHROPIC_API_KEY": "fake"},
         cwd=tmp_path,
     )
@@ -45,7 +45,7 @@ def test_cli_missing_api_key_exits_1(tmp_path):
         "OH_MINI_FORCE_FILE_BACKEND": "1",
     }
     proc = subprocess.run(
-        [sys.executable, "-m", "oh_mini", "hi"],
+        [sys.executable, "-m", "oh_mini", "--provider", "anthropic", "hi"],
         capture_output=True,
         text=True,
         env=env,

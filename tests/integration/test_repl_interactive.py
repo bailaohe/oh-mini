@@ -18,7 +18,7 @@ def test_repl_single_turn_then_exit(tmp_path):
         }
     )
     proc = subprocess.run(
-        [sys.executable, "-m", "oh_mini"],
+        [sys.executable, "-m", "oh_mini", "--provider", "anthropic"],
         input="hi\n/exit\n",
         capture_output=True,
         text=True,
@@ -41,7 +41,7 @@ def test_repl_clear_command(tmp_path):
         }
     )
     proc = subprocess.run(
-        [sys.executable, "-m", "oh_mini"],
+        [sys.executable, "-m", "oh_mini", "--provider", "anthropic"],
         input="/clear\n/exit\n",
         capture_output=True,
         text=True,
