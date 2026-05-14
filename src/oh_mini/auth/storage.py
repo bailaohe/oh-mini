@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import os
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Protocol
@@ -33,6 +34,8 @@ class CredentialBackend(Protocol):
     def put(self, key: CredentialKey, secret: str) -> None: ...
     def delete(self, key: CredentialKey) -> bool: ...
     def list(self) -> list[CredentialKey]: ...
+    def touch(self, key: CredentialKey) -> None: ...
+    def get_last_used(self, key: CredentialKey) -> float: ...
 
 
 # --------------------------------------------------------------------------- #
@@ -40,23 +43,28 @@ class CredentialBackend(Protocol):
 # --------------------------------------------------------------------------- #
 
 
-class FileBackend:
-    """Plain-text JSON storage with POSIX mode 0600.
+_CredEntry = dict[str, float | str]  # {"secret": str, "last_used": float}
+_CredStore = dict[str, dict[str, _CredEntry]]
 
-    JSON shape:
+
+class FileBackend:
+    """JSON v2 storage:
         {
-          "version": 1,
+          "version": 2,
           "credentials": {
-            "<provider>": {"<profile>": "<api_key>", ...},
-            ...
+            "<provider>": {
+              "<profile>": {"secret": "<api_key>", "last_used": 1715731200.0}
+            }
           }
         }
+
+    Lazy-reads v1 (secret as bare string, last_used=0.0).
     """
 
     def __init__(self, path: Path) -> None:
         self._path = path
 
-    def _load(self) -> dict[str, dict[str, str]]:
+    def _load(self) -> _CredStore:
         if not self._path.exists():
             return {}
         try:
@@ -65,19 +73,24 @@ class FileBackend:
             raise CredentialStorageError(
                 f"credentials file corrupted: {self._path}: {exc}"
             ) from exc
-        if not isinstance(data, dict) or data.get("version") != 1:
+        if not isinstance(data, dict):
             raise CredentialStorageError(f"credentials file has unexpected schema: {self._path}")
-        creds = data.get("credentials", {})
-        if not isinstance(creds, dict):
+        version = data.get("version")
+        if version not in (1, 2):
+            raise CredentialStorageError(
+                f"credentials file has unexpected version {version!r}: {self._path}"
+            )
+        creds_raw = data.get("credentials", {})
+        if not isinstance(creds_raw, dict):
             raise CredentialStorageError(
                 f"credentials file has malformed 'credentials' field: {self._path}"
             )
-        return creds
+        return _normalize_creds(creds_raw, version)
 
-    def _save(self, creds: dict[str, dict[str, str]]) -> None:
+    def _save(self, creds: _CredStore) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self._path.with_suffix(".json.tmp")
-        body = json.dumps({"version": 1, "credentials": creds}, indent=2, ensure_ascii=False)
+        body = json.dumps({"version": 2, "credentials": creds}, indent=2, ensure_ascii=False)
         fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(body + "\n")
@@ -86,11 +99,18 @@ class FileBackend:
 
     def get(self, key: CredentialKey) -> str | None:
         creds = self._load()
-        return creds.get(key.provider, {}).get(key.profile)
+        entry = creds.get(key.provider, {}).get(key.profile)
+        if entry is None:
+            return None
+        secret = entry.get("secret")
+        return secret if isinstance(secret, str) else None
 
     def put(self, key: CredentialKey, secret: str) -> None:
         creds = self._load()
-        creds.setdefault(key.provider, {})[key.profile] = secret
+        creds.setdefault(key.provider, {})[key.profile] = {
+            "secret": secret,
+            "last_used": time.time(),
+        }
         self._save(creds)
 
     def delete(self, key: CredentialKey) -> bool:
@@ -110,6 +130,42 @@ class FileBackend:
             for profile in profiles:
                 out.append(CredentialKey(provider, profile))
         return out
+
+    def touch(self, key: CredentialKey) -> None:
+        creds = self._load()
+        entry = creds.get(key.provider, {}).get(key.profile)
+        if entry is None:
+            return
+        entry["last_used"] = time.time()
+        self._save(creds)
+
+    def get_last_used(self, key: CredentialKey) -> float:
+        creds = self._load()
+        entry = creds.get(key.provider, {}).get(key.profile)
+        if entry is None:
+            return 0.0
+        ts = entry.get("last_used", 0.0)
+        return float(ts) if isinstance(ts, (int, float)) else 0.0
+
+
+def _normalize_creds(creds_raw: dict[str, object], version: int) -> _CredStore:
+    """Normalize v1 (bare string secrets) and v2 (entry dicts) into v2 shape in memory."""
+    out: _CredStore = {}
+    for provider, profiles in creds_raw.items():
+        if not isinstance(profiles, dict):
+            continue
+        out[provider] = {}
+        for profile, raw in profiles.items():
+            if isinstance(raw, str):
+                out[provider][profile] = {"secret": raw, "last_used": 0.0}
+            elif isinstance(raw, dict) and "secret" in raw:
+                secret = raw["secret"]
+                last_used = raw.get("last_used", 0.0)
+                out[provider][profile] = {
+                    "secret": str(secret),
+                    "last_used": float(last_used) if isinstance(last_used, (int, float)) else 0.0,
+                }
+    return out
 
 
 # --------------------------------------------------------------------------- #

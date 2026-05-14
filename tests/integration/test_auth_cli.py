@@ -35,7 +35,7 @@ def test_auth_login_stores_credential(tmp_path: Path) -> None:
     creds_path = tmp_path / ".oh-mini" / "credentials.json"
     assert creds_path.exists(), f"creds file not at {creds_path}"
     data = json.loads(creds_path.read_text())
-    assert data["credentials"]["deepseek"]["default"] == "sk-deepseek-xxx"
+    assert data["credentials"]["deepseek"]["default"]["secret"] == "sk-deepseek-xxx"
 
 
 def test_auth_login_unknown_provider_exits_2(tmp_path: Path) -> None:
