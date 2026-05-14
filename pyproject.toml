@@ -65,6 +65,10 @@ module = "nbformat.*"
 ignore_missing_imports = true
 disallow_untyped_calls = false
 
+[[tool.mypy.overrides]]
+module = "keyring.*"
+ignore_missing_imports = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py310"
