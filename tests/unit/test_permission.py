@@ -1,4 +1,5 @@
 """Tests for InteractiveAskPermissionResolver."""
+
 from __future__ import annotations
 
 from meta_harney.abstractions.tool import ToolInvocation
@@ -56,6 +57,7 @@ async def test_dangerous_a_promotes_yolo() -> None:
 async def test_dangerous_eof_denies() -> None:
     def _ask(_p: str) -> str:
         raise EOFError
+
     r = InteractiveAskPermissionResolver(yolo=False, ask=_ask)
     decision = await r.resolve(_make_inv("bash", {"command": "ls"}), "s1")
     assert decision.verdict == "deny"

@@ -1,4 +1,5 @@
 """BashTool — run a shell command with timeout."""
+
 from __future__ import annotations
 
 import asyncio

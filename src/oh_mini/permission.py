@@ -1,4 +1,5 @@
 """InteractiveAskPermissionResolver — interactive y/N/a prompting for dangerous tools."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -6,9 +7,7 @@ from collections.abc import Callable
 from meta_harney.abstractions.permission import PermissionDecision
 from meta_harney.abstractions.tool import ToolInvocation
 
-DANGEROUS_TOOLS: frozenset[str] = frozenset(
-    {"bash", "file_write", "file_edit", "notebook_edit"}
-)
+DANGEROUS_TOOLS: frozenset[str] = frozenset({"bash", "file_write", "file_edit", "notebook_edit"})
 
 
 def _default_ask(prompt: str) -> str:

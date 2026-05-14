@@ -1,4 +1,5 @@
 """GlobTool — match files by glob pattern."""
+
 from __future__ import annotations
 
 from meta_harney.abstractions.tool import (

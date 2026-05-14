@@ -1,4 +1,5 @@
 """FileEditTool — exact-match string replacement in a file."""
+
 from __future__ import annotations
 
 from meta_harney.abstractions.tool import (

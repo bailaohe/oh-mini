@@ -1,4 +1,5 @@
 """Tests for path-traversal guard."""
+
 from __future__ import annotations
 
 import pytest

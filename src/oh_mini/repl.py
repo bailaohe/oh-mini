@@ -1,4 +1,5 @@
 """Interactive REPL loop."""
+
 from __future__ import annotations
 
 import argparse
@@ -24,7 +25,9 @@ async def run_repl(args: argparse.Namespace) -> int:
     if args.no_yolo:
         yolo = False
     rt = build_runtime(
-        provider=args.provider, model=args.model, yolo=yolo,
+        provider=args.provider,
+        model=args.model,
+        yolo=yolo,
         sessions_root=sessions_root,
     )
     console = Console()

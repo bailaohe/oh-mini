@@ -1,4 +1,5 @@
 """Path-traversal guard shared by file_read / file_write / file_edit tools."""
+
 from __future__ import annotations
 
 import os

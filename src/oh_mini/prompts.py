@@ -1,4 +1,5 @@
 """Coding-agent system prompt with cwd injection."""
+
 from __future__ import annotations
 
 import os

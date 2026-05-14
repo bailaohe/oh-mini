@@ -1,4 +1,5 @@
 """Tests for build_runtime factory."""
+
 from __future__ import annotations
 
 from oh_mini.runtime import build_runtime
@@ -32,8 +33,16 @@ def test_build_runtime_loads_all_ten_tools(monkeypatch, tmp_path):
     rt = build_runtime(provider="anthropic", model=None, yolo=False)
     tools = rt._tools
     expected = {
-        "file_read", "file_write", "file_edit", "grep", "glob", "bash",
-        "todo_write", "agent", "notebook_edit", "web_fetch",
+        "file_read",
+        "file_write",
+        "file_edit",
+        "grep",
+        "glob",
+        "bash",
+        "todo_write",
+        "agent",
+        "notebook_edit",
+        "web_fetch",
     }
     assert set(tools.keys()) == expected
 

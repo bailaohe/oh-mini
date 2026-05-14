@@ -1,4 +1,5 @@
 """Tests for AgentTool."""
+
 from __future__ import annotations
 
 from meta_harney.abstractions._types import Message, TextBlock
@@ -34,7 +35,7 @@ class _StubBackend:
         return None
 
 
-def _make_ctx_with_backend(backend) -> ToolContext:
+def _make_ctx_with_backend(backend: object) -> ToolContext:
     return ToolContext(
         session_store=MemorySessionStore(),
         trace_sink=NullSink(),

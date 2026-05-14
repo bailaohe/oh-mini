@@ -1,4 +1,5 @@
 """oh-mini CLI entry point."""
+
 from __future__ import annotations
 
 import argparse
@@ -41,7 +42,9 @@ async def run_one_shot(args: argparse.Namespace) -> int:
     sessions_root = Path(args.sessions_root) if args.sessions_root else None
     yolo = _resolve_yolo(args, interactive_mode=False)
     rt = build_runtime(
-        provider=args.provider, model=args.model, yolo=yolo,
+        provider=args.provider,
+        model=args.model,
+        yolo=yolo,
         sessions_root=sessions_root,
     )
     console = Console()
@@ -62,7 +65,7 @@ async def run_one_shot(args: argparse.Namespace) -> int:
 
 async def run_repl(args: argparse.Namespace) -> int:
     """Stub — REPL implemented in Task 18 (oh_mini.repl.run_repl)."""
-    from oh_mini.repl import run_repl as _run_repl_inner  # type: ignore[import-untyped]
+    from oh_mini.repl import run_repl as _run_repl_inner
 
     result: int = await _run_repl_inner(args)
     return result

@@ -1,4 +1,5 @@
 """FileWriteTool — create or overwrite a text file."""
+
 from __future__ import annotations
 
 from meta_harney.abstractions.tool import (

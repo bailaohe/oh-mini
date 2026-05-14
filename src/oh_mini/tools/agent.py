@@ -1,4 +1,5 @@
 """AgentTool — spawn a read-only sub-agent via meta-harney MultiAgentBackend."""
+
 from __future__ import annotations
 
 from meta_harney.abstractions._types import TextBlock

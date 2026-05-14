@@ -1,4 +1,5 @@
 """Factory to assemble an oh-mini AgentRuntime."""
+
 from __future__ import annotations
 
 import os
@@ -43,10 +44,7 @@ def build_runtime(
         from meta_harney import FakeLLMProvider, FakeRound
 
         prov = FakeLLMProvider(
-            rounds=[
-                FakeRound(text="hello from fake", stop_reason="end_turn")
-                for _ in range(20)
-            ]
+            rounds=[FakeRound(text="hello from fake", stop_reason="end_turn") for _ in range(20)]
         )
     elif provider == "anthropic":
         api_key = os.environ.get("ANTHROPIC_API_KEY", "")

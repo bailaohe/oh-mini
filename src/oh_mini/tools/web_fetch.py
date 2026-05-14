@@ -1,4 +1,5 @@
 """WebFetchTool — fetch a URL via httpx (https only)."""
+
 from __future__ import annotations
 
 from urllib.parse import urlparse

@@ -1,21 +1,29 @@
 """Integration tests for `oh` one-shot CLI."""
+
 from __future__ import annotations
 
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 
 def _run_cli(
-    args: list[str], env_extra: dict[str, str] | None = None, cwd=None
-) -> subprocess.CompletedProcess:
+    args: list[str],
+    env_extra: dict[str, str] | None = None,
+    cwd: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["OH_MINI_TEST_FAKE_PROVIDER"] = "1"
     if env_extra:
         env.update(env_extra)
     return subprocess.run(
         [sys.executable, "-m", "oh_mini", *args],
-        capture_output=True, text=True, env=env, cwd=cwd, timeout=30,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=cwd,
+        timeout=30,
     )
 
 
@@ -37,7 +45,11 @@ def test_cli_missing_api_key_exits_1(tmp_path):
     }
     proc = subprocess.run(
         [sys.executable, "-m", "oh_mini", "hi"],
-        capture_output=True, text=True, env=env, cwd=tmp_path, timeout=15,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=tmp_path,
+        timeout=15,
     )
     assert proc.returncode == 1
     out_combined = (proc.stderr + proc.stdout).upper()

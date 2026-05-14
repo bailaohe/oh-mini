@@ -1,4 +1,5 @@
 """NotebookEditTool — edit a single code cell of a Jupyter notebook."""
+
 from __future__ import annotations
 
 import nbformat
@@ -22,8 +23,7 @@ class _NotebookEditInput(BaseModel):
 class NotebookEditTool(BaseTool):  # type: ignore[misc]
     name = "notebook_edit"
     description = (
-        "Replace the source of a single cell in a Jupyter notebook (.ipynb). "
-        "cell_index is 0-based."
+        "Replace the source of a single cell in a Jupyter notebook (.ipynb). cell_index is 0-based."
     )
     input_schema = _NotebookEditInput
 
@@ -49,8 +49,7 @@ class NotebookEditTool(BaseTool):  # type: ignore[misc]
             return ToolResult(
                 success=False,
                 error=(
-                    f"cell_index {cell_index} out of range "
-                    f"(notebook has {len(nb['cells'])} cells)"
+                    f"cell_index {cell_index} out of range (notebook has {len(nb['cells'])} cells)"
                 ),
             )
         nb["cells"][cell_index]["source"] = str(inv.args["new_source"])

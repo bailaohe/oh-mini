@@ -1,4 +1,5 @@
 """Render meta-harney StreamEvent into Rich console output."""
+
 from __future__ import annotations
 
 from meta_harney import (
