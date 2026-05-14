@@ -42,6 +42,7 @@ def test_cli_missing_api_key_exits_1(tmp_path):
         "PATH": os.environ["PATH"],
         "HOME": str(tmp_path),
         "OH_MINI_TEST_FAKE_PROVIDER": "0",
+        "OH_MINI_FORCE_FILE_BACKEND": "1",
     }
     proc = subprocess.run(
         [sys.executable, "-m", "oh_mini", "hi"],
@@ -52,8 +53,9 @@ def test_cli_missing_api_key_exits_1(tmp_path):
         timeout=15,
     )
     assert proc.returncode == 1
-    out_combined = (proc.stderr + proc.stdout).upper()
-    assert "ANTHROPIC_API_KEY" in out_combined or "API KEY" in out_combined
+    out_combined = (proc.stderr + proc.stdout).lower()
+    assert "no credential" in out_combined
+    assert "oh auth login" in out_combined
 
 
 def test_cli_version_flag(tmp_path):

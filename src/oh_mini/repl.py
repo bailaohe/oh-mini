@@ -1,5 +1,4 @@
 """Interactive REPL loop."""
-
 from __future__ import annotations
 
 import argparse
@@ -7,25 +6,52 @@ import os
 import sys
 from pathlib import Path
 
+from meta_harney import BUILT_IN_PROVIDERS
 from meta_harney.abstractions._types import Message, TextBlock
 from rich.console import Console
 
+from oh_mini.auth.resolver import CredentialResolver, NoCredentialError
+from oh_mini.auth.storage import default_backend
 from oh_mini.output import render_stream_event
 from oh_mini.runtime import build_runtime
 
 
-async def run_repl(args: argparse.Namespace) -> int:
-    # TTY check (bypass if test env var set)
+async def run_repl(args: argparse.Namespace, settings: object = None) -> int:
     if not sys.stdin.isatty() and os.environ.get("OH_MINI_TEST_REPL_FORCE") != "1":
         sys.stderr.write("error: REPL requires a TTY (or set OH_MINI_TEST_REPL_FORCE=1)\n")
         return 1
 
+    if settings is None:
+        from oh_mini.config import load_settings
+        settings = load_settings()
+
+    from oh_mini.config import Settings
+
+    assert isinstance(settings, Settings)
+
+    provider_name = args.default_provider_flag or settings.default_provider
+    profile_name = args.default_profile_flag or settings.default_profile
+
+    if provider_name not in BUILT_IN_PROVIDERS:
+        sys.stderr.write(f"error: unknown provider {provider_name!r}. Try: oh providers list\n")
+        return 2
+
+    resolver = CredentialResolver(default_backend())
+    try:
+        api_key = resolver.resolve(provider_name, profile_name, cli_api_key=args.api_key)
+    except NoCredentialError as exc:
+        sys.stderr.write(
+            f"error: {exc}. Try: oh auth login --provider {provider_name}\n"
+        )
+        return 1
+
     sessions_root = Path(args.sessions_root) if args.sessions_root else None
-    yolo: bool = args.yolo
+    yolo = bool(args.yolo) if args.yolo else False
     if args.no_yolo:
         yolo = False
     rt = build_runtime(
-        provider=args.provider,
+        provider=provider_name,
+        api_key=api_key,
         model=args.model,
         yolo=yolo,
         sessions_root=sessions_root,
