@@ -28,6 +28,10 @@ oh auth login --provider anthropic
 oh "list the python files in the current directory"
 ```
 
+After `oh auth login --provider <X>` your first credential becomes the
+*effective default* automatically — subsequent `oh "..."` commands use it
+without a `--provider` flag. To override, see [Defaults](#defaults) below.
+
 Or skip storage and use env var:
 
 ```bash
@@ -78,6 +82,27 @@ oh auth remove --provider deepseek --profile work   # delete
 **Storage backend:** keyring (macOS Keychain / Linux Secret Service /
 Windows Credential Manager) if available; otherwise plain JSON at
 `~/.oh-mini/credentials.json` with POSIX mode 0600.
+
+## Defaults
+
+Provider resolution order (highest first):
+
+1. `--provider <X>` CLI flag
+2. `default_provider` in `~/.oh-mini/settings.json` (if set)
+3. Smart pick: the stored credential with the most recent `last_used`
+   timestamp (the credential you most recently logged in or used)
+4. Error: prompts you to `oh auth login --provider <X>`
+
+### `oh config` CLI
+
+```bash
+oh config show                                # show settings + effective default
+oh config get default_provider                # read one setting
+oh config set default_provider deepseek       # pin a default
+oh config unset default_provider              # revert to smart pick
+```
+
+Known settings keys: `default_provider`, `default_profile`.
 
 ## Custom providers
 
