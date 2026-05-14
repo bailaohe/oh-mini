@@ -73,3 +73,57 @@ def test_build_runtime_unknown_provider_exits(monkeypatch, tmp_path):
     with pytest.raises(SystemExit) as exc_info:
         build_runtime(provider="nonexistent-llm", api_key="fake", model=None, yolo=False)
     assert exc_info.value.code == 2
+
+
+def test_build_runtime_accepts_permission_resolver_override(tmp_path):
+    """When permission_resolver is provided, build_runtime uses it instead of the default."""
+    import os
+
+    os.environ["OH_MINI_TEST_FAKE_PROVIDER"] = "1"
+    try:
+        sentinel = _SentinelPermissionResolver()
+        rt = build_runtime(
+            provider="deepseek",
+            api_key="fake",
+            sessions_root=tmp_path,
+            permission_resolver=sentinel,
+        )
+        assert rt._permission_resolver is sentinel
+    finally:
+        os.environ.pop("OH_MINI_TEST_FAKE_PROVIDER", None)
+
+
+def test_build_runtime_accepts_trace_sink_override(tmp_path):
+    import os
+
+    os.environ["OH_MINI_TEST_FAKE_PROVIDER"] = "1"
+    try:
+        sentinel = _SentinelTraceSink()
+        rt = build_runtime(
+            provider="deepseek",
+            api_key="fake",
+            sessions_root=tmp_path,
+            trace_sink=sentinel,
+        )
+        assert rt._trace_sink is sentinel
+    finally:
+        os.environ.pop("OH_MINI_TEST_FAKE_PROVIDER", None)
+
+
+class _SentinelPermissionResolver:
+    """Stand-in for a custom PermissionResolver — duck-typed."""
+
+    async def resolve(self, invocation, session_id):
+        from meta_harney.abstractions.permission import PermissionDecision
+
+        return PermissionDecision(verdict="allow")
+
+
+class _SentinelTraceSink:
+    """Stand-in for a custom TraceSink."""
+
+    async def emit(self, event):
+        pass
+
+    async def flush(self):
+        pass

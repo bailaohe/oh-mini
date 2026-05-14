@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 from meta_harney import (
     BUILT_IN_PROVIDERS,
@@ -29,6 +30,8 @@ def build_runtime(
     model: str | None = None,
     yolo: bool = False,
     sessions_root: Path | None = None,
+    permission_resolver: Any | None = None,
+    trace_sink: Any | None = None,
 ) -> AgentRuntime:
     """Assemble a meta-harney AgentRuntime configured for coding scenarios.
 
@@ -37,8 +40,16 @@ def build_runtime(
         api_key: Resolved API key. Caller is responsible for resolution.
             Ignored when OH_MINI_TEST_FAKE_PROVIDER=1.
         model: Model id override. None = use spec.default_model.
-        yolo: Skip all permission prompts.
+        yolo: Skip all permission prompts. Ignored when ``permission_resolver``
+            is provided (the explicit resolver wins).
         sessions_root: Override session storage root.
+        permission_resolver: Optional override for the permission resolver.
+            When provided, replaces the default
+            ``InteractiveAskPermissionResolver(yolo=yolo)``. Typed as ``Any`` to
+            avoid pulling bridge-related imports into runtime.py.
+        trace_sink: Optional override for the trace sink. When provided,
+            replaces the default ``NullSink()``. Typed as ``Any`` for the same
+            reason.
 
     Raises SystemExit(2) when provider is not in the catalog.
     """
@@ -64,10 +75,10 @@ def build_runtime(
     root.mkdir(parents=True, exist_ok=True)
     session_store = FileSessionStore(root)
 
-    permission = InteractiveAskPermissionResolver(yolo=yolo)
+    permission = permission_resolver or InteractiveAskPermissionResolver(yolo=yolo)
+    sink = trace_sink or NullSink()
     prompt_builder = CodingPromptBuilder(session_store=session_store)
     tools = build_all_tools()
-    trace_sink = NullSink()
     config = RuntimeConfig(model=chosen_model, max_iterations=20)
     hooks: list[BaseHook] = []
 
@@ -75,7 +86,7 @@ def build_runtime(
         provider=prov,
         permission_resolver=permission,
         session_store=session_store,
-        trace_sink=trace_sink,
+        trace_sink=sink,
         config=config,
         all_tools=tools,
         hooks=hooks,
@@ -86,7 +97,7 @@ def build_runtime(
         prompt_builder=prompt_builder,
         permission_resolver=permission,
         session_store=session_store,
-        trace_sink=trace_sink,
+        trace_sink=sink,
         config=config,
         tools=tools,
         hooks=hooks,
