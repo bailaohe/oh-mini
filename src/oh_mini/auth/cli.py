@@ -42,6 +42,8 @@ def handle_auth(args: argparse.Namespace) -> int:
 def _do_login(args: argparse.Namespace, backend: CredentialBackend, backend_name: str) -> int:
     from meta_harney import BUILT_IN_PROVIDERS
 
+    from oh_mini.config import _default_settings_path, load_settings
+
     if args.provider not in BUILT_IN_PROVIDERS:
         print(
             f"error: unknown provider {args.provider!r}. Try: oh providers list",
@@ -63,6 +65,19 @@ def _do_login(args: argparse.Namespace, backend: CredentialBackend, backend_name
         print(f"error: {exc}", file=sys.stderr)
         return 1
     print(f"saved {args.provider}/{profile} -> {backend_name}")
+
+    # Friendly nudge: did this become the effective default?
+    try:
+        settings = load_settings(_default_settings_path())
+        if settings.default_provider is None:
+            keys = backend.list()
+            if len(keys) == 1 and keys[0].provider == args.provider:
+                print(
+                    f'({args.provider} is now your effective default — run `oh "..."` to use it.)'
+                )
+    except Exception:
+        # Never let a nudge failure break the login.
+        pass
     return 0
 
 
