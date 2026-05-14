@@ -1,18 +1,16 @@
-"""Factory to assemble an oh-mini AgentRuntime."""
-
+"""Factory to assemble an oh-mini AgentRuntime (Phase 9b: catalog-driven)."""
 from __future__ import annotations
 
 import os
 import sys
 from pathlib import Path
-from typing import Literal
 
 from meta_harney import (
+    BUILT_IN_PROVIDERS,
     AgentRuntime,
-    AnthropicProvider,
     BaseHook,
-    OpenAIProvider,
     RuntimeConfig,
+    provider_from_spec,
 )
 from meta_harney.builtin.multi_agent.in_process import InProcessMultiAgentBackend
 from meta_harney.builtin.session.file_store import FileSessionStore
@@ -22,42 +20,48 @@ from oh_mini.permission import InteractiveAskPermissionResolver
 from oh_mini.prompts import CodingPromptBuilder
 from oh_mini.tools import build_all_tools
 
-_DEFAULT_MODELS: dict[str, str] = {
-    "anthropic": "claude-sonnet-4-5",
-    "openai": "gpt-4o",
-}
-
 
 def build_runtime(
     *,
-    provider: Literal["anthropic", "openai"] = "anthropic",
+    provider: str = "anthropic",
+    api_key: str = "",
     model: str | None = None,
     yolo: bool = False,
     sessions_root: Path | None = None,
 ) -> AgentRuntime:
     """Assemble a meta-harney AgentRuntime configured for coding scenarios.
 
-    If OH_MINI_TEST_FAKE_PROVIDER=1, swap in a FakeLLMProvider that returns
-    canned 'hello from fake' rounds. Used only by integration tests.
+    Args:
+        provider: Provider name from meta_harney.BUILT_IN_PROVIDERS.
+        api_key: Resolved API key. Caller is responsible for resolution.
+            Ignored when OH_MINI_TEST_FAKE_PROVIDER=1.
+        model: Model id override. None = use spec.default_model.
+        yolo: Skip all permission prompts.
+        sessions_root: Override session storage root.
+
+    Raises SystemExit(2) when provider is not in the catalog.
     """
     if os.environ.get("OH_MINI_TEST_FAKE_PROVIDER") == "1":
-        from meta_harney import FakeLLMProvider, FakeRound
+        from meta_harney.testing import FakeLLMProvider, FakeRound
 
         prov = FakeLLMProvider(
-            rounds=[FakeRound(text="hello from fake", stop_reason="end_turn") for _ in range(20)]
+            rounds=[
+                FakeRound(text="hello from fake", stop_reason="end_turn")
+                for _ in range(20)
+            ]
         )
-    elif provider == "anthropic":
-        api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-        if not api_key:
-            sys.exit("error: ANTHROPIC_API_KEY env var not set")
-        prov = AnthropicProvider(api_key=api_key)
+        chosen_model = model or "fake-model"
     else:
-        api_key = os.environ.get("OPENAI_API_KEY", "")
-        if not api_key:
-            sys.exit("error: OPENAI_API_KEY env var not set")
-        prov = OpenAIProvider(api_key=api_key)
-
-    chosen_model = model or _DEFAULT_MODELS[provider]
+        if provider not in BUILT_IN_PROVIDERS:
+            print(
+                f"error: unknown provider {provider!r}. "
+                f"Try: oh providers list",
+                file=sys.stderr,
+            )
+            sys.exit(2)
+        spec = BUILT_IN_PROVIDERS[provider]
+        prov = provider_from_spec(spec, api_key=api_key)
+        chosen_model = model or spec.default_model
 
     root = sessions_root or (Path.home() / ".oh-mini" / "sessions")
     root.mkdir(parents=True, exist_ok=True)
