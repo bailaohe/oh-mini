@@ -159,8 +159,12 @@ async def _run_server(
     server = BridgeServer(
         runtime=runtime,
         framing=framing,
-        server_info={"name": "oh-mini-bridge", "version": "0.4.0"},
+        server_info={"name": "oh-mini-bridge", "version": "0.4.2"},
         trace_sink=trace_sink,
+        # Publish the effective provider/model so clients (e.g. oh-tui's
+        # StatusBar) can show the smart-picked values, not just whatever
+        # `--provider X` flag they themselves passed (often none).
+        runtime_info={"provider": provider, "model": model},
     )
     server_holder["server"] = server
 
