@@ -85,7 +85,7 @@ class FileBackend:
             raise CredentialStorageError(
                 f"credentials file has malformed 'credentials' field: {self._path}"
             )
-        return _normalize_creds(creds_raw, version)
+        return _normalize_creds(creds_raw)
 
     def _save(self, creds: _CredStore) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -148,7 +148,7 @@ class FileBackend:
         return float(ts) if isinstance(ts, (int, float)) else 0.0
 
 
-def _normalize_creds(creds_raw: dict[str, object], version: int) -> _CredStore:
+def _normalize_creds(creds_raw: dict[str, object]) -> _CredStore:
     """Normalize v1 (bare string secrets) and v2 (entry dicts) into v2 shape in memory."""
     out: _CredStore = {}
     for provider, profiles in creds_raw.items():
@@ -180,30 +180,45 @@ def _username(key: CredentialKey) -> str:
 
 
 class KeyringBackend:
-    """Uses `keyring` library. Maintains a sidecar JSON index of stored keys."""
+    """Uses `keyring` library; sidecar JSON index tracks known keys + last_used.
+
+    Index v2 shape::
+
+        [
+          {"provider": "deepseek", "profile": "default", "last_used": 1715731200.0}
+        ]
+
+    Old format (list of ``{provider, profile}`` without ``last_used``) is read
+    with ``last_used=0.0``, and rewritten in v2 on the next put/touch.
+    """
 
     def __init__(self, *, index_path: Path | None = None) -> None:
         self._index_path = index_path or (Path.home() / ".oh-mini" / "keyring-index.json")
 
-    def _load_index(self) -> list[CredentialKey]:
+    def _load_index(self) -> dict[tuple[str, str], float]:
         if not self._index_path.exists():
-            return []
+            return {}
         try:
             data = json.loads(self._index_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
-            return []
+            return {}
         if not isinstance(data, list):
-            return []
-        out: list[CredentialKey] = []
+            return {}
+        out: dict[tuple[str, str], float] = {}
         for entry in data:
-            if isinstance(entry, dict) and "provider" in entry:
-                out.append(CredentialKey(entry["provider"], entry.get("profile", "default")))
+            if not isinstance(entry, dict) or "provider" not in entry:
+                continue
+            provider = str(entry["provider"])
+            profile = str(entry.get("profile", "default"))
+            raw_ts = entry.get("last_used", 0.0)
+            ts = float(raw_ts) if isinstance(raw_ts, (int, float)) else 0.0
+            out[(provider, profile)] = ts
         return out
 
-    def _save_index(self, keys: list[CredentialKey]) -> None:
+    def _save_index(self, index: dict[tuple[str, str], float]) -> None:
         self._index_path.parent.mkdir(parents=True, exist_ok=True)
         body = json.dumps(
-            [{"provider": k.provider, "profile": k.profile} for k in keys],
+            [{"provider": p, "profile": pr, "last_used": ts} for (p, pr), ts in index.items()],
             indent=2,
         )
         self._index_path.write_text(body + "\n", encoding="utf-8")
@@ -221,24 +236,33 @@ class KeyringBackend:
         except Exception as exc:
             raise CredentialStorageError(f"keyring put failed: {exc}") from exc
         index = self._load_index()
-        if key not in index:
-            index.append(key)
-            self._save_index(index)
+        index[(key.provider, key.profile)] = time.time()
+        self._save_index(index)
 
     def delete(self, key: CredentialKey) -> bool:
         index = self._load_index()
-        if key not in index:
+        if (key.provider, key.profile) not in index:
             return False
         try:
             keyring.delete_password(_KEYRING_SERVICE, _username(key))
         except Exception as exc:
             raise CredentialStorageError(f"keyring delete failed: {exc}") from exc
-        index.remove(key)
+        del index[(key.provider, key.profile)]
         self._save_index(index)
         return True
 
     def list(self) -> list[CredentialKey]:
-        return list(self._load_index())
+        return [CredentialKey(p, pr) for (p, pr) in self._load_index().keys()]
+
+    def touch(self, key: CredentialKey) -> None:
+        index = self._load_index()
+        if (key.provider, key.profile) not in index:
+            return
+        index[(key.provider, key.profile)] = time.time()
+        self._save_index(index)
+
+    def get_last_used(self, key: CredentialKey) -> float:
+        return self._load_index().get((key.provider, key.profile), 0.0)
 
 
 # --------------------------------------------------------------------------- #

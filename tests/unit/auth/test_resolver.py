@@ -13,6 +13,7 @@ class _InMemoryBackend:
 
     def __init__(self, data: dict[CredentialKey, str] | None = None) -> None:
         self._d = dict(data or {})
+        self._ts: dict[CredentialKey, float] = {}
 
     def get(self, key: CredentialKey) -> str | None:
         return self._d.get(key)
@@ -21,10 +22,18 @@ class _InMemoryBackend:
         self._d[key] = secret
 
     def delete(self, key: CredentialKey) -> bool:
+        self._ts.pop(key, None)
         return self._d.pop(key, None) is not None
 
     def list(self) -> list[CredentialKey]:
         return list(self._d.keys())
+
+    def touch(self, key: CredentialKey) -> None:
+        if key in self._d:
+            self._ts[key] = 0.0
+
+    def get_last_used(self, key: CredentialKey) -> float:
+        return self._ts.get(key, 0.0)
 
 
 def test_resolver_cli_api_key_wins(monkeypatch):
