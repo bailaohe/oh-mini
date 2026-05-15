@@ -59,9 +59,13 @@ def test_cli_missing_api_key_exits_1(tmp_path):
 
 
 def test_cli_version_flag(tmp_path):
+    from oh_mini import __version__
+
     proc = _run_cli(
         ["--version"],
         env_extra={"HOME": str(tmp_path), "ANTHROPIC_API_KEY": "fake"},
     )
     assert proc.returncode == 0
-    assert "0.4.4" in proc.stdout
+    # Don't hard-code the version — bump versions in __init__.py only,
+    # tests follow automatically.
+    assert __version__ in proc.stdout

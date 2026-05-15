@@ -36,3 +36,6 @@ Thumbs.db
 
 # oh-mini runtime data
 .oh-mini/
+
+# uv-generated lockfile (not part of project history; regen-on-install)
+uv.lock
