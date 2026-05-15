@@ -64,4 +64,4 @@ def test_cli_version_flag(tmp_path):
         env_extra={"HOME": str(tmp_path), "ANTHROPIC_API_KEY": "fake"},
     )
     assert proc.returncode == 0
-    assert "0.4.2" in proc.stdout
+    assert "0.4.3" in proc.stdout

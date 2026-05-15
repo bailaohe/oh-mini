@@ -146,6 +146,15 @@ async def _run_server(
     permission = _select_permission_resolver(yolo=yolo, send_request=lazy_send_request)
     trace_sink = BridgeTraceSink(send_notification=lazy_send_notification)
 
+    # Resolve the effective model so we can publish it via runtime_info even
+    # when the user didn't pass --model. build_runtime applies this same
+    # fallback internally; we mirror it here purely to surface the value
+    # back to clients (e.g. oh-tui's StatusBar). Custom providers registered
+    # via settings.json are also in BUILT_IN_PROVIDERS at this point
+    # because load_settings() ran in handle_bridge() above.
+    spec = BUILT_IN_PROVIDERS.get(provider)
+    effective_model = model or (spec.default_model if spec is not None else None)
+
     runtime = build_runtime(
         provider=provider,
         api_key=api_key,
@@ -159,12 +168,12 @@ async def _run_server(
     server = BridgeServer(
         runtime=runtime,
         framing=framing,
-        server_info={"name": "oh-mini-bridge", "version": "0.4.2"},
+        server_info={"name": "oh-mini-bridge", "version": "0.4.3"},
         trace_sink=trace_sink,
         # Publish the effective provider/model so clients (e.g. oh-tui's
         # StatusBar) can show the smart-picked values, not just whatever
         # `--provider X` flag they themselves passed (often none).
-        runtime_info={"provider": provider, "model": model},
+        runtime_info={"provider": provider, "model": effective_model},
     )
     server_holder["server"] = server
 

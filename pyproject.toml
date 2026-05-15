@@ -1,6 +1,6 @@
 [project]
 name = "oh-mini"
-version = "0.4.2"
+version = "0.4.3"
 description = "Coding-agent CLI demo built on meta-harney runtime."
 readme = "README.md"
 requires-python = ">=3.10"
